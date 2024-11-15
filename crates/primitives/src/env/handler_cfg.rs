@@ -6,6 +6,7 @@ use std::boxed::Box;
 /// It contains specification id and the Optimism related field if
 /// optimism feature is enabled.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct HandlerCfg {
     /// Specification identification.
     pub spec_id: SpecId,
@@ -107,6 +108,7 @@ impl Deref for CfgEnvWithHandlerCfg {
 
 /// Evm environment with the chain spec id.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct EnvWithHandlerCfg {
     /// Evm environment.
     pub env: Box<Env>,
