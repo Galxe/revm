@@ -232,6 +232,7 @@ pub struct AccountInfo {
     pub code_hash: B256,
     /// code: if None, `code_by_hash` will be used to fetch it if code needs to be loaded from
     /// inside `revm`.
+    #[cfg_attr(feature = "serde", serde(skip_serializing))]
     pub code: Option<Bytecode>,
 }
 
