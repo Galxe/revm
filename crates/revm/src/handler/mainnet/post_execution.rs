@@ -1,7 +1,8 @@
 use crate::{
     interpreter::{Gas, SuccessOrHalt},
     primitives::{
-        db::Database, EVMError, ExecutionResult, ResultAndState, Spec, SpecId, SpecId::LONDON, U256,
+        db::Database, EVMError, Env, ExecutionResult, ResultAndState, Spec, SpecId, SpecId::LONDON,
+        U256,
     },
     Context, FrameResult,
 };
@@ -25,20 +26,11 @@ pub fn clear<EXT, DB: Database>(context: &mut Context<EXT, DB>) {
 
 /// Reward beneficiary with gas fee.
 #[inline]
-pub fn reward_beneficiary<SPEC: Spec, EXT, DB: Database>(
+fn reward_beneficiary<EXT, DB: Database>(
     context: &mut Context<EXT, DB>,
-    gas: &Gas,
+    rewards: u128,
 ) -> Result<(), EVMError<DB::Error>> {
     let beneficiary = context.evm.env.block.coinbase;
-    let effective_gas_price = context.evm.env.effective_gas_price();
-
-    // transfer fee to coinbase/beneficiary.
-    // EIP-1559 discard basefee for coinbase transfer. Basefee amount of gas is discarded.
-    let coinbase_gas_price = if SPEC::enabled(LONDON) {
-        effective_gas_price.saturating_sub(context.evm.env.block.basefee)
-    } else {
-        effective_gas_price
-    };
 
     let coinbase_account = context
         .evm
@@ -51,9 +43,23 @@ pub fn reward_beneficiary<SPEC: Spec, EXT, DB: Database>(
         .data
         .info
         .balance
-        .saturating_add(coinbase_gas_price * U256::from(gas.spent() - gas.refunded() as u64));
+        .saturating_add(U256::from(rewards));
 
     Ok(())
+}
+
+#[inline]
+fn reward<SPEC: Spec>(env: &Env, gas: &Gas) -> u128 {
+    let effective_gas_price = env.effective_gas_price();
+
+    // EIP-1559 discard basefee for coinbase transfer. Basefee amount of gas is discarded.
+    let coinbase_gas_price = if SPEC::enabled(LONDON) {
+        effective_gas_price.saturating_sub(env.block.basefee)
+    } else {
+        effective_gas_price
+    };
+
+    coinbase_gas_price.to::<u128>() * (gas.spent() as u128 - gas.refunded() as u128)
 }
 
 pub fn refund<SPEC: Spec, EXT, DB: Database>(
@@ -94,10 +100,16 @@ pub fn reimburse_caller<SPEC: Spec, EXT, DB: Database>(
 
 /// Main return handle, returns the output of the transaction.
 #[inline]
-pub fn output<EXT, DB: Database>(
+pub fn output<SPEC: Spec, EXT, DB: Database>(
     context: &mut Context<EXT, DB>,
     result: FrameResult,
+    lazy_reward: bool,
 ) -> Result<ResultAndState, EVMError<DB::Error>> {
+    let rewards = reward::<SPEC>(context.evm.env.as_ref(), result.gas());
+    if !lazy_reward {
+        reward_beneficiary(context, rewards)?;
+    }
+
     context.evm.take_error()?;
     // used gas with refund calculated.
     let gas_refunded = result.gas().refunded() as u64;
@@ -133,5 +145,9 @@ pub fn output<EXT, DB: Database>(
         }
     };
 
-    Ok(ResultAndState { result, state })
+    Ok(ResultAndState {
+        result,
+        state,
+        rewards,
+    })
 }

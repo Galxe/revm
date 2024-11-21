@@ -13,9 +13,7 @@ pub use execution::{
     FrameCreateReturnHandle, InsertCallOutcomeHandle, InsertCreateOutcomeHandle,
 };
 pub use generic::{GenericContextHandle, GenericContextHandleRet};
-pub use post_execution::{
-    EndHandle, OutputHandle, PostExecutionHandler, ReimburseCallerHandle, RewardBeneficiaryHandle,
-};
+pub use post_execution::{EndHandle, OutputHandle, PostExecutionHandler, ReimburseCallerHandle};
 pub use pre_execution::{
     DeductCallerHandle, LoadAccountsHandle, LoadPrecompilesHandle, PreExecutionHandler,
 };
