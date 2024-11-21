@@ -17,6 +17,8 @@ pub struct ResultAndState {
     pub result: ExecutionResult,
     /// State that got updated
     pub state: EvmState,
+    /// Rewards to be given to the coinbase
+    pub rewards: u128,
 }
 
 /// Result of a transaction execution.

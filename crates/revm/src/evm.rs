@@ -43,7 +43,11 @@ where
 impl<EXT, DB: Database + DatabaseCommit> Evm<'_, EXT, DB> {
     /// Commit the changes to the database.
     pub fn transact_commit(&mut self) -> Result<ExecutionResult, EVMError<DB::Error>> {
-        let ResultAndState { result, state } = self.transact()?;
+        let ResultAndState {
+            result,
+            state,
+            rewards: _,
+        } = self.transact()?;
         self.context.evm.db.commit(state);
         Ok(result)
     }
@@ -200,7 +204,7 @@ impl<EXT, DB: Database> Evm<'_, EXT, DB> {
             .validation()
             .initial_tx_gas(&self.context.evm.env)
             .inspect_err(|_e| self.clear())?;
-        let output = self.transact_preverified_inner(initial_gas_spend);
+        let output = self.transact_preverified_inner(initial_gas_spend, false);
         let output = self.handler.post_execution().end(&mut self.context, output);
         self.clear();
         output
@@ -220,16 +224,33 @@ impl<EXT, DB: Database> Evm<'_, EXT, DB> {
         Ok(initial_gas_spend)
     }
 
-    /// Transact transaction
+    /// Transact transaction and reward the coinbase immediately.
     ///
     /// This function will validate the transaction.
     #[inline]
     pub fn transact(&mut self) -> EVMResult<DB::Error> {
-        let initial_gas_spend = self
-            .preverify_transaction_inner()
-            .inspect_err(|_e| self.clear())?;
+        self.transact_inner(false)
+    }
 
-        let output = self.transact_preverified_inner(initial_gas_spend);
+    /// Transact transaction without rewarding the coinbase but return rewards value in result.
+    /// This function is used to avoid unnecessarily loading coinbase in the transaction.
+    ///
+    /// This function will validate the transaction.
+    #[inline]
+    pub fn transact_lazy_reward(&mut self) -> EVMResult<DB::Error> {
+        self.transact_inner(true)
+    }
+
+    /// Transact transaction
+    ///
+    /// This function will validate the transaction.
+    #[inline]
+    fn transact_inner(&mut self, lazy_reward: bool) -> EVMResult<DB::Error> {
+        let initial_gas_spend = self.preverify_transaction_inner().inspect_err(|_e| {
+            self.clear();
+        })?;
+
+        let output = self.transact_preverified_inner(initial_gas_spend, lazy_reward);
         let output = self.handler.post_execution().end(&mut self.context, output);
         self.clear();
         output
@@ -319,7 +340,11 @@ impl<EXT, DB: Database> Evm<'_, EXT, DB> {
     }
 
     /// Transact pre-verified transaction.
-    fn transact_preverified_inner(&mut self, initial_gas_spend: u64) -> EVMResult<DB::Error> {
+    fn transact_preverified_inner(
+        &mut self,
+        initial_gas_spend: u64,
+        lazy_reward: bool,
+    ) -> EVMResult<DB::Error> {
         let spec_id = self.spec_id();
         let ctx = &mut self.context;
         let pre_exec = self.handler.pre_execution();
@@ -383,10 +408,8 @@ impl<EXT, DB: Database> Evm<'_, EXT, DB> {
         post_exec.refund(ctx, result.gas_mut(), eip7702_gas_refund);
         // Reimburse the caller
         post_exec.reimburse_caller(ctx, result.gas())?;
-        // Reward beneficiary
-        post_exec.reward_beneficiary(ctx, result.gas())?;
         // Returns output of transaction.
-        post_exec.output(ctx, result)
+        post_exec.output(ctx, result, lazy_reward)
     }
 }
 
