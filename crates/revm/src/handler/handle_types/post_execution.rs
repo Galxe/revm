@@ -11,14 +11,12 @@ use std::sync::Arc;
 pub type ReimburseCallerHandle<'a, EXT, DB> =
     Arc<dyn Fn(&mut Context<EXT, DB>, &Gas) -> EVMResultGeneric<(), <DB as Database>::Error> + 'a>;
 
-/// Reward beneficiary with transaction rewards.
-pub type RewardBeneficiaryHandle<'a, EXT, DB> = ReimburseCallerHandle<'a, EXT, DB>;
-
 /// Main return handle, takes state from journal and transforms internal result to external.
 pub type OutputHandle<'a, EXT, DB> = Arc<
     dyn Fn(
             &mut Context<EXT, DB>,
             FrameResult,
+            bool, /* lazy_reward */
         ) -> Result<ResultAndState, EVMError<<DB as Database>::Error>>
         + 'a,
 >;
@@ -47,8 +45,6 @@ pub struct PostExecutionHandler<'a, EXT, DB: Database> {
     pub refund: RefundHandle<'a, EXT, DB>,
     /// Reimburse the caller with ethereum it didn't spend.
     pub reimburse_caller: ReimburseCallerHandle<'a, EXT, DB>,
-    /// Reward the beneficiary with caller fee.
-    pub reward_beneficiary: RewardBeneficiaryHandle<'a, EXT, DB>,
     /// Main return handle, returns the output of the transact.
     pub output: OutputHandle<'a, EXT, DB>,
     /// Called when execution ends.
@@ -66,8 +62,7 @@ impl<'a, EXT: 'a, DB: Database + 'a> PostExecutionHandler<'a, EXT, DB> {
         Self {
             refund: Arc::new(mainnet::refund::<SPEC, EXT, DB>),
             reimburse_caller: Arc::new(mainnet::reimburse_caller::<SPEC, EXT, DB>),
-            reward_beneficiary: Arc::new(mainnet::reward_beneficiary::<SPEC, EXT, DB>),
-            output: Arc::new(mainnet::output::<EXT, DB>),
+            output: Arc::new(mainnet::output::<SPEC, EXT, DB>),
             end: Arc::new(mainnet::end::<EXT, DB>),
             clear: Arc::new(mainnet::clear::<EXT, DB>),
         }
@@ -88,22 +83,15 @@ impl<'a, EXT, DB: Database> PostExecutionHandler<'a, EXT, DB> {
     ) -> Result<(), EVMError<DB::Error>> {
         (self.reimburse_caller)(context, gas)
     }
-    /// Reward beneficiary
-    pub fn reward_beneficiary(
-        &self,
-        context: &mut Context<EXT, DB>,
-        gas: &Gas,
-    ) -> Result<(), EVMError<DB::Error>> {
-        (self.reward_beneficiary)(context, gas)
-    }
 
     /// Returns the output of transaction.
     pub fn output(
         &self,
         context: &mut Context<EXT, DB>,
         result: FrameResult,
+        lazy_reward: bool,
     ) -> Result<ResultAndState, EVMError<DB::Error>> {
-        (self.output)(context, result)
+        (self.output)(context, result, lazy_reward)
     }
 
     /// End handler.
