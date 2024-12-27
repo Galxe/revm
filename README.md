@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/badge/License-MIT-orange.svg)][mit-license]
 [![Chat][tg-badge]][tg-url]
 
-[mit-license]: https://opensource.org/license/mit/
+[mit-license]: https://github.com/Galxe/revm/blob/main/LICENSE
 [gh-ci]: https://github.com/bluealloy/revm/actions/workflows/ci.yml
 [tg-url]: https://t.me/+Ig4WDWOzikA3MzA0
 [tg-badge]: https://img.shields.io/badge/chat-telegram-blue
