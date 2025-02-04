@@ -10,6 +10,8 @@ pub mod state;
 pub mod state_builder;
 pub mod transition_account;
 pub mod transition_state;
+pub mod parallel_state;
+pub mod parallel_cache;
 
 /// Account status for Block and Bundle states.
 pub use account_status::AccountStatus;
@@ -24,3 +26,5 @@ pub use state::{DBBox, State, StateDBBox};
 pub use state_builder::StateBuilder;
 pub use transition_account::TransitionAccount;
 pub use transition_state::TransitionState;
+pub use parallel_state::ParallelState;
+pub use parallel_cache::ParallelCacheState;

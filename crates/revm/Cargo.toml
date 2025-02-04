@@ -53,6 +53,9 @@ alloy-provider = { version = "0.3", optional = true, default-features = false }
 alloy-eips = { version = "0.3", optional = true, default-features = false }
 alloy-transport = { version = "0.3", optional = true, default-features = false }
 
+# grevm
+dashmap = "6.0"
+
 [dev-dependencies]
 alloy-sol-types = { version = "0.8.2", default-features = false, features = [
     "std",
