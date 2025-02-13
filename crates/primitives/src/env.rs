@@ -300,6 +300,7 @@ pub struct CfgEnv {
     /// Blob target count. EIP-7840 Add blob schedule to EL config files.
     ///
     /// Note : Items must be sorted by `SpecId`.
+    #[cfg_attr(feature = "serde", serde(default))]
     pub blob_target_and_max_count: Vec<(SpecId, u8, u8)>,
     /// A hard memory limit in bytes beyond which [crate::result::OutOfGasError::Memory] cannot be resized.
     ///
