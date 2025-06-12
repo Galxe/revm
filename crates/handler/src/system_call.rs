@@ -102,7 +102,7 @@ pub trait SystemCallEvm: ExecuteEvm {
         let result =
             self.transact_system_call_with_caller(caller, system_contract_address, data)?;
         let state = self.finalize();
-        Ok(ExecResultAndState::new(result, state))
+        Ok(ExecResultAndState::new(result, state, 0))
     }
 }
 

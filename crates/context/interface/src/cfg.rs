@@ -55,6 +55,11 @@ pub trait Cfg {
 
     /// Returns whether the priority fee check is disabled.
     fn is_priority_fee_check_disabled(&self) -> bool;
+
+    /// Returns whether the lazy reward is enabled.
+    fn is_lazy_reward(&self) -> bool {
+        false
+    }
 }
 
 /// What bytecode analysis to perform

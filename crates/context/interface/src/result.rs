@@ -27,6 +27,8 @@ pub struct ExecResultAndState<R, S = EvmState> {
     pub result: R,
     /// Output State.
     pub state: S,
+    /// Lazy reward for the transaction.
+    pub lazy_reward: u128,
 }
 
 /// Type alias for backwards compatibility.
@@ -37,8 +39,40 @@ pub type ResultVecAndState<R, S> = ExecResultAndState<Vec<R>, S>;
 
 impl<R, S> ExecResultAndState<R, S> {
     /// Creates new ResultAndState.
-    pub fn new(result: R, state: S) -> Self {
-        Self { result, state }
+    pub fn new(result: R, state: S, lazy_reward: u128) -> Self {
+        Self {
+            result,
+            state,
+            lazy_reward,
+        }
+    }
+}
+
+/// Execution result and reward.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct ExecResultAndReward<R> {
+    /// Execution result
+    pub result: R,
+    /// For lazy rewards
+    pub lazy_reward: u128,
+}
+
+/// Type alias for convenience, representing execution result and reward with halt reason.
+pub type ResultAndReward<H = HaltReason> = ExecResultAndReward<ExecutionResult<H>>;
+
+impl<R> ExecResultAndReward<R> {
+    /// Creates a new `ExecResultAndReward`.
+    pub const fn new(result: R, lazy_reward: u128) -> Self {
+        Self {
+            result,
+            lazy_reward,
+        }
+    }
+
+    /// Converts the `ExecResultAndReward` into an `ExecResultAndState`.
+    pub fn into_result_and_state<S>(self, state: S) -> ExecResultAndState<R, S> {
+        ExecResultAndState::new(self.result, state, self.lazy_reward)
     }
 }
 

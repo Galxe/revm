@@ -328,15 +328,15 @@ where
         &self,
         evm: &mut Self::Evm,
         frame_result: &mut <<Self::Evm as EvmTr>::Frame as FrameTr>::FrameResult,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<u128, Self::Error> {
         let is_deposit = evm.ctx().tx().tx_type() == DEPOSIT_TRANSACTION_TYPE;
 
         // Transfer fee to coinbase/beneficiary.
         if is_deposit {
-            return Ok(());
+            return Ok(0);
         }
 
-        self.mainnet.reward_beneficiary(evm, frame_result)?;
+        let reward = self.mainnet.reward_beneficiary(evm, frame_result)?;
         let basefee = evm.ctx().block().basefee() as u128;
 
         // If the transaction is not a deposit transaction, fees are paid out
@@ -375,7 +375,7 @@ where
         ctx.journal_mut()
             .balance_incr(OPERATOR_FEE_RECIPIENT, operator_fee_cost)?;
 
-        Ok(())
+        Ok(reward)
     }
 
     fn execution_result(

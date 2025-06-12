@@ -184,7 +184,7 @@ mod tests {
 
         let result = evm.transact_one(tx).unwrap();
 
-        let output = result.output().unwrap();
+        let output = result.result.output().unwrap();
         let evm_val = FastLz::fastLzCall::abi_decode_returns(output).unwrap();
 
         assert_eq!(U256::from(native_val), evm_val);

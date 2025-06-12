@@ -432,6 +432,7 @@ pub fn execute_test_suite(
                 *elapsed.lock().unwrap() += timer.elapsed();
                 let spec = cfg.spec();
                 // Dump state and traces if test failed
+                let exec_result = exec_result.map(|r| r.result);
                 let output = check_evm_execution(
                     &test,
                     unit.out.as_ref(),

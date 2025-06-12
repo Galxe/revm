@@ -105,7 +105,7 @@ fn balance_of(token: Address, address: Address, alloy_db: &mut AlloyCacheDB) -> 
         })
         .unwrap();
 
-    let value = match result {
+    let value = match result.result {
         ExecutionResult::Success {
             output: Output::Call(value),
             ..
@@ -148,7 +148,7 @@ async fn get_amount_out(
         })
         .unwrap();
 
-    let value = match result {
+    let value = match result.result {
         ExecutionResult::Success {
             output: Output::Call(value),
             ..
@@ -180,7 +180,7 @@ fn get_reserves(pair_address: Address, cache_db: &mut AlloyCacheDB) -> Result<(U
         })
         .unwrap();
 
-    let value = match result {
+    let value = match result.result {
         ExecutionResult::Success {
             output: Output::Call(value),
             ..
@@ -229,7 +229,7 @@ fn swap(
 
     let ref_tx = evm.transact_commit(tx).unwrap();
 
-    match ref_tx {
+    match ref_tx.result {
         ExecutionResult::Success { .. } => {}
         result => return Err(anyhow!("'swap' execution failed: {result:?}")),
     };
@@ -261,7 +261,7 @@ fn transfer(
     };
 
     let ref_tx = evm.transact_commit(tx).unwrap();
-    let success: bool = match ref_tx {
+    let success: bool = match ref_tx.result {
         ExecutionResult::Success {
             output: Output::Call(value),
             ..
