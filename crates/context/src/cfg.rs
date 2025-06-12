@@ -153,6 +153,14 @@ pub struct CfgEnv<SPEC = SpecId> {
     ///
     /// By default, it is set to `false`.
     pub amsterdam_eip7708_delayed_burn_disabled: bool,
+    /// Lazy reward for gravity grevm parallel EVM.
+    ///
+    /// When enabled, the beneficiary is not credited the priority fee in
+    /// `post_execution`; instead the reward amount is returned to the caller
+    /// so it can be applied out-of-band.
+    ///
+    /// By default, it is set to `false`.
+    pub lazy_reward: bool,
 }
 
 impl CfgEnv {
@@ -269,6 +277,7 @@ impl<SPEC> CfgEnv<SPEC> {
             enable_amsterdam_eip8037: self.enable_amsterdam_eip8037,
             amsterdam_eip7708_disabled: self.amsterdam_eip7708_disabled,
             amsterdam_eip7708_delayed_burn_disabled: self.amsterdam_eip7708_delayed_burn_disabled,
+            lazy_reward: self.lazy_reward,
         }
     }
 
@@ -352,6 +361,7 @@ impl<SPEC: Into<SpecId> + Clone> CfgEnv<SPEC> {
             enable_amsterdam_eip8037: is_amsterdam,
             amsterdam_eip7708_disabled: false,
             amsterdam_eip7708_delayed_burn_disabled: false,
+            lazy_reward: false,
         }
     }
 
@@ -570,6 +580,10 @@ impl<SPEC: Into<SpecId> + Clone> Cfg for CfgEnv<SPEC> {
 
     fn is_amsterdam_eip8037_enabled(&self) -> bool {
         self.enable_amsterdam_eip8037
+    }
+
+    fn is_lazy_reward(&self) -> bool {
+        self.lazy_reward
     }
 }
 

@@ -100,15 +100,24 @@ pub fn reimburse_caller<CTX: ContextTr>(
 }
 
 /// Rewards the beneficiary with transaction fees.
+///
+/// Returns the reward amount:
+/// - When `Cfg::is_lazy_reward()` is `false` (default), the beneficiary is
+///   credited inline and `0` is returned.
+/// - When `Cfg::is_lazy_reward()` is `true`, the beneficiary is NOT credited
+///   and the reward amount is returned so the caller (gravity grevm) can
+///   batch-apply it out-of-band.
+/// - When fee charging is disabled, `0` is returned and no credit happens.
 #[inline]
 pub fn reward_beneficiary<CTX: ContextTr>(
     context: &mut CTX,
     gas: &Gas,
-) -> Result<(), <CTX::Db as Database>::Error> {
+) -> Result<u128, <CTX::Db as Database>::Error> {
     // If fee charge was disabled (e.g. eth_call simulations), the caller was
-    // never charged for gas so there are no fees to transfer to the beneficiary.
+    // never charged for gas so there are no fees to transfer to the beneficiary
+    // and nothing to defer either.
     if context.cfg().is_fee_charge_disabled() {
-        return Ok(());
+        return Ok(0);
     }
     let (block, tx, cfg, journal, _, _) = context.all_mut();
     let basefee = block.basefee() as u128;
@@ -122,14 +131,23 @@ pub fn reward_beneficiary<CTX: ContextTr>(
         effective_gas_price
     };
 
-    // Reward beneficiary.
-    // Exclude reservoir gas (EIP-8037) from the used gas — reservoir is unused and reimbursed.
+    // Exclude reservoir gas (EIP-8037) from the used gas — reservoir is unused
+    // and reimbursed to the caller, so the beneficiary share is computed on
+    // `gas.used() - gas.reservoir()`.
     let effective_used = gas.used().saturating_sub(gas.reservoir());
+    let reward = coinbase_gas_price * effective_used as u128;
+
+    if cfg.is_lazy_reward() {
+        // Defer crediting; caller applies the reward out-of-band.
+        return Ok(reward);
+    }
+
+    // Reward beneficiary inline (default upstream behavior).
     journal
         .load_account_mut(block.beneficiary())?
-        .incr_balance(U256::from(coinbase_gas_price * effective_used as u128));
+        .incr_balance(U256::from(reward));
 
-    Ok(())
+    Ok(0)
 }
 
 /// Calculate last gas spent and transform internal reason to external.

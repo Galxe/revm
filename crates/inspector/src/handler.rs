@@ -1,5 +1,8 @@
 use crate::{Inspector, InspectorEvmTr, JournalExt};
-use context::{result::ExecutionResult, Cfg, ContextTr, JournalEntry, JournalTr, Transaction};
+use context::{
+    result::{ExecutionResult, ResultAndReward},
+    Cfg, ContextTr, JournalEntry, JournalTr, Transaction,
+};
 use handler::{
     evm::FrameTr, post_execution::build_result_gas, EvmTr, FrameResult, Handler, ItemOrResult,
 };
@@ -44,10 +47,12 @@ where
     fn inspect_run(
         &mut self,
         evm: &mut Self::Evm,
-    ) -> Result<ExecutionResult<Self::HaltReason>, Self::Error> {
+    ) -> Result<ResultAndReward<Self::HaltReason>, Self::Error> {
         match self.inspect_run_without_catch_error(evm) {
             Ok(output) => Ok(output),
-            Err(e) => self.catch_error(evm, e),
+            Err(e) => self
+                .catch_error(evm, e)
+                .map(|result| ResultAndReward::new(result, 0)),
         }
     }
 
@@ -57,20 +62,21 @@ where
     fn inspect_run_without_catch_error(
         &mut self,
         evm: &mut Self::Evm,
-    ) -> Result<ExecutionResult<Self::HaltReason>, Self::Error> {
+    ) -> Result<ResultAndReward<Self::HaltReason>, Self::Error> {
         let mut init_and_floor_gas = self.validate(evm)?;
         // pre_execution now applies the EIP-7702 state gas refund split to init_and_floor_gas
         // and returns the regular refund portion
         let eip7702_regular_refund = self.pre_execution(evm, &mut init_and_floor_gas)? as i64;
 
         let mut frame_result = self.inspect_execution(evm, &init_and_floor_gas)?;
-        let result_gas = self.post_execution(
+        let (result_gas, reward) = self.post_execution(
             evm,
             &mut frame_result,
             init_and_floor_gas,
             eip7702_regular_refund,
         )?;
         self.execution_result(evm, frame_result, result_gas)
+            .map(|result| ResultAndReward::new(result, reward))
     }
 
     /// Run execution loop with inspection support

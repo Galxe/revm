@@ -42,6 +42,44 @@ impl<R, S> ExecResultAndState<R, S> {
     }
 }
 
+/// Execution result paired with the deferred lazy reward.
+///
+/// Used by gravity's grevm parallel EVM. When `Cfg::is_lazy_reward()` is
+/// `true`, the per-tx beneficiary credit is not applied inside the EVM and
+/// the reward amount is returned to the caller here so it can be batch-applied
+/// out-of-band.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct ExecResultAndReward<R> {
+    /// Execution result
+    pub result: R,
+    /// Deferred reward for the transaction (priority fee that was NOT credited
+    /// to the beneficiary). Zero when lazy reward is disabled.
+    pub lazy_reward: u128,
+}
+
+/// Type alias for convenience, representing execution result and reward with halt reason.
+pub type ResultAndReward<H = HaltReason> = ExecResultAndReward<ExecutionResult<H>>;
+
+impl<R> ExecResultAndReward<R> {
+    /// Creates a new `ExecResultAndReward`.
+    pub const fn new(result: R, lazy_reward: u128) -> Self {
+        Self {
+            result,
+            lazy_reward,
+        }
+    }
+
+    /// Converts the `ExecResultAndReward` into an `ExecResultAndState` by
+    /// pairing it with the given state.
+    ///
+    /// The `lazy_reward` is dropped; the caller is responsible for applying
+    /// it out-of-band before this conversion.
+    pub fn into_result_and_state<S>(self, state: S) -> ExecResultAndState<R, S> {
+        ExecResultAndState::new(self.result, state)
+    }
+}
+
 /// Gas accounting result from transaction execution.
 ///
 /// Self-contained gas snapshot with all values needed for downstream consumers.

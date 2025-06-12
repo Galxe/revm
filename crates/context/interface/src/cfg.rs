@@ -94,6 +94,15 @@ pub trait Cfg {
     /// via the reservoir model. EIP-8037 specifies concrete gas values based on
     /// `cost_per_state_byte` and adds a hash cost for deployed bytecode.
     fn is_amsterdam_eip8037_enabled(&self) -> bool;
+
+    /// Returns whether the lazy reward is enabled.
+    ///
+    /// When enabled, the beneficiary is not credited the priority fee in
+    /// `post_execution`; instead the reward amount is returned to the caller
+    /// so it can be applied out-of-band (used by gravity's grevm parallel EVM).
+    fn is_lazy_reward(&self) -> bool {
+        false
+    }
 }
 
 /// What bytecode analysis to perform

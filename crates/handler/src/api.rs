@@ -3,8 +3,8 @@ use crate::{
 };
 use context::{
     result::{
-        EVMError, ExecResultAndState, ExecutionResult, HaltReason, InvalidTransaction,
-        ResultAndState, ResultVecAndState, TransactionIndexedError,
+        EVMError, ExecResultAndReward, ExecResultAndState, ExecutionResult, HaltReason,
+        InvalidTransaction, ResultAndState, ResultVecAndState, TransactionIndexedError,
     },
     Block, ContextSetters, ContextTr, Database, Evm, JournalTr, Transaction,
 };
@@ -49,7 +49,10 @@ pub trait ExecuteEvm {
     /// # History Note
     /// Previously this function returned both output and state.
     /// Now it follows a two-step process: execute then finalize.
-    fn transact_one(&mut self, tx: Self::Tx) -> Result<Self::ExecutionResult, Self::Error>;
+    fn transact_one(
+        &mut self,
+        tx: Self::Tx,
+    ) -> Result<ExecResultAndReward<Self::ExecutionResult>, Self::Error>;
 
     /// Finalize execution, clearing the journal and returning the accumulated state changes.
     ///
@@ -73,7 +76,7 @@ pub trait ExecuteEvm {
         // finalize will clear the journal
         let state = self.finalize();
         let output = output_or_error?;
-        Ok(ExecResultAndState::new(output, state))
+        Ok(output.into_result_and_state(state))
     }
 
     /// Execute multiple transactions without finalizing the state.
@@ -89,7 +92,7 @@ pub trait ExecuteEvm {
     fn transact_many(
         &mut self,
         txs: impl Iterator<Item = Self::Tx>,
-    ) -> Result<Vec<Self::ExecutionResult>, TransactionIndexedError<Self::Error>> {
+    ) -> Result<Vec<ExecResultAndReward<Self::ExecutionResult>>, TransactionIndexedError<Self::Error>> {
         let (lower, _) = txs.size_hint();
         let mut outputs = Vec::with_capacity(lower);
         for (index, tx) in txs.enumerate() {
@@ -107,6 +110,11 @@ pub trait ExecuteEvm {
     /// Execute multiple transactions and finalize the state in a single operation.
     ///
     /// Internally calls [`ExecuteEvm::transact_many`] followed by [`ExecuteEvm::finalize`].
+    ///
+    /// Note: in lazy-reward mode, the per-tx deferred rewards are dropped on
+    /// this batch path. Callers that need the rewards should use
+    /// [`ExecuteEvm::transact_many`] and read each `ExecResultAndReward`'s
+    /// `lazy_reward` field.
     #[inline]
     fn transact_many_finalize(
         &mut self,
@@ -115,10 +123,15 @@ pub trait ExecuteEvm {
         // on error transact_multi will clear the journal
         let result = self.transact_many(txs)?;
         let state = self.finalize();
-        Ok(ExecResultAndState::new(result, state))
+        let vec_result = result.into_iter().map(|res| res.result).collect::<Vec<_>>();
+        Ok(ExecResultAndState::new(vec_result, state))
     }
 
     /// Execute previous transaction and finalize it.
+    ///
+    /// Note: in lazy-reward mode, the deferred reward is dropped on this
+    /// path. Callers that need the reward should use [`ExecuteEvm::transact`]
+    /// or [`ExecuteEvm::transact_one`] and read the `lazy_reward` field.
     fn replay(
         &mut self,
     ) -> Result<ExecResultAndState<Self::ExecutionResult, Self::State>, Self::Error>;
@@ -140,7 +153,10 @@ pub trait ExecuteCommitEvm: ExecuteEvm {
 
     /// Transact the transaction and commit to the state.
     #[inline]
-    fn transact_commit(&mut self, tx: Self::Tx) -> Result<Self::ExecutionResult, Self::Error> {
+    fn transact_commit(
+        &mut self,
+        tx: Self::Tx,
+    ) -> Result<ExecResultAndReward<Self::ExecutionResult>, Self::Error> {
         let output = self.transact_one(tx)?;
         self.commit_inner();
         Ok(output)
@@ -153,7 +169,7 @@ pub trait ExecuteCommitEvm: ExecuteEvm {
     fn transact_many_commit(
         &mut self,
         txs: impl Iterator<Item = Self::Tx>,
-    ) -> Result<Vec<Self::ExecutionResult>, TransactionIndexedError<Self::Error>> {
+    ) -> Result<Vec<ExecResultAndReward<Self::ExecutionResult>>, TransactionIndexedError<Self::Error>> {
         let outputs = self.transact_many(txs)?;
         self.commit_inner();
         Ok(outputs)
@@ -162,6 +178,9 @@ pub trait ExecuteCommitEvm: ExecuteEvm {
     /// Replay the transaction and commit to the state.
     ///
     /// Internally calls `replay` and `commit` functions.
+    ///
+    /// Note: the deferred lazy reward is dropped on this path; use
+    /// [`ExecuteEvm::transact_commit`] if the reward is needed.
     #[inline]
     fn replay_commit(&mut self) -> Result<Self::ExecutionResult, Self::Error> {
         let result = self.replay()?;
@@ -184,7 +203,10 @@ where
     type Block = <CTX as ContextTr>::Block;
 
     #[inline]
-    fn transact_one(&mut self, tx: Self::Tx) -> Result<Self::ExecutionResult, Self::Error> {
+    fn transact_one(
+        &mut self,
+        tx: Self::Tx,
+    ) -> Result<ExecResultAndReward<Self::ExecutionResult>, Self::Error> {
         self.ctx.set_tx(tx);
         MainnetHandler::default().run(self)
     }
@@ -203,7 +225,7 @@ where
     fn replay(&mut self) -> Result<ResultAndState<HaltReason>, Self::Error> {
         MainnetHandler::default().run(self).map(|result| {
             let state = self.finalize();
-            ResultAndState::new(result, state)
+            result.into_result_and_state(state)
         })
     }
 }

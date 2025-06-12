@@ -62,7 +62,7 @@ fn main() -> anyhow::Result<()> {
     let ExecutionResult::Success {
         output: Output::Create(_, Some(address)),
         ..
-    } = ref_tx
+    } = ref_tx.result
     else {
         bail!("Failed to create contract: {ref_tx:#?}");
     };
