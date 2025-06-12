@@ -16,6 +16,8 @@ pub struct ResultAndState<HaltReasonTy = HaltReason> {
     pub result: ExecutionResult<HaltReasonTy>,
     /// State that got updated
     pub state: EvmState,
+    /// lazy reward
+    pub reward: u128,
 }
 
 impl<HaltReasonTy> ResultAndState<HaltReasonTy> {
@@ -27,6 +29,7 @@ impl<HaltReasonTy> ResultAndState<HaltReasonTy> {
         ResultAndState {
             result: self.result.map_haltreason(op),
             state: self.state,
+            reward: 0,
         }
     }
 }

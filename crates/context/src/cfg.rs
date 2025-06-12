@@ -65,6 +65,8 @@ pub struct CfgEnv<SPEC = SpecId> {
     /// By default, it is set to `false`.
     #[cfg(feature = "optional_no_base_fee")]
     pub disable_base_fee: bool,
+    /// lazy reward for grevm
+    pub lazy_reward: bool,
 }
 
 impl CfgEnv {
@@ -93,6 +95,7 @@ impl<SPEC> CfgEnv<SPEC> {
             disable_eip3607: false,
             #[cfg(feature = "optional_no_base_fee")]
             disable_base_fee: false,
+            lazy_reward: false,
         }
     }
 
@@ -120,6 +123,7 @@ impl<SPEC> CfgEnv<SPEC> {
             disable_eip3607: self.disable_eip3607,
             #[cfg(feature = "optional_no_base_fee")]
             disable_base_fee: self.disable_base_fee,
+            lazy_reward: false,
         }
     }
 
@@ -203,6 +207,10 @@ impl<SPEC: Into<SpecId> + Copy> Cfg for CfgEnv<SPEC> {
                 false
             }
         }
+    }
+
+    fn is_lazy_reward(&self) -> bool {
+        self.lazy_reward
     }
 }
 

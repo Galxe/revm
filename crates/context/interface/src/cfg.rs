@@ -29,6 +29,10 @@ pub trait Cfg {
     fn is_nonce_check_disabled(&self) -> bool;
 
     fn is_base_fee_check_disabled(&self) -> bool;
+
+    fn is_lazy_reward(&self) -> bool {
+        false
+    }
 }
 
 /// What bytecode analysis to perform

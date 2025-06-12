@@ -317,12 +317,13 @@ where
         &self,
         evm: &mut Self::Evm,
         exec_result: &mut <Self::Frame as Frame>::FrameResult,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<u128, Self::Error> {
         let is_deposit = evm.ctx().tx().tx_type() == DEPOSIT_TRANSACTION_TYPE;
 
         // Transfer fee to coinbase/beneficiary.
+        let mut reward = 0;
         if !is_deposit {
-            self.mainnet.reward_beneficiary(evm, exec_result)?;
+            reward = self.mainnet.reward_beneficiary(evm, exec_result)?;
             let basefee = evm.ctx().block().basefee() as u128;
 
             // If the transaction is not a deposit transaction, fees are paid out
@@ -365,7 +366,7 @@ where
             operator_fee_vault_account.mark_touch();
             operator_fee_vault_account.data.info.balance += operator_fee_cost;
         }
-        Ok(())
+        Ok(reward)
     }
 
     fn output(
@@ -445,6 +446,7 @@ where
                     gas_used,
                 },
                 state,
+                reward: 0,
             })
         } else {
             Err(error)

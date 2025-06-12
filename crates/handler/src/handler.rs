@@ -202,9 +202,13 @@ pub trait Handler {
         // Return unused gas to caller
         self.reimburse_caller(evm, &mut exec_result)?;
         // Pay transaction fees to beneficiary
-        self.reward_beneficiary(evm, &mut exec_result)?;
+        let reward = self.reward_beneficiary(evm, &mut exec_result)?;
         // Prepare transaction output
-        self.output(evm, exec_result)
+        let mut result = self.output(evm, exec_result)?;
+        if reward != 0 {
+            result.reward += reward
+        }
+        Ok(result)
     }
 
     /* VALIDATION */
@@ -452,7 +456,7 @@ pub trait Handler {
         &self,
         evm: &mut Self::Evm,
         exec_result: &mut <Self::Frame as Frame>::FrameResult,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<u128, Self::Error> {
         post_execution::reward_beneficiary(evm.ctx(), exec_result.gas_mut()).map_err(From::from)
     }
 
