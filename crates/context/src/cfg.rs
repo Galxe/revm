@@ -110,6 +110,10 @@ pub struct CfgEnv<SPEC = SpecId> {
     /// By default, it is set to `false`.
     #[cfg(feature = "optional_fee_charge")]
     pub disable_fee_charge: bool,
+    /// lazy reward for grevm
+    ///
+    /// By default, it is set to `false`.
+    pub lazy_reward: bool,
 }
 
 impl CfgEnv {
@@ -167,6 +171,7 @@ impl<SPEC> CfgEnv<SPEC> {
             disable_priority_fee_check: false,
             #[cfg(feature = "optional_fee_charge")]
             disable_fee_charge: false,
+            lazy_reward: false,
         }
     }
 
@@ -216,6 +221,7 @@ impl<SPEC> CfgEnv<SPEC> {
             disable_priority_fee_check: self.disable_priority_fee_check,
             #[cfg(feature = "optional_fee_charge")]
             disable_fee_charge: self.disable_fee_charge,
+            lazy_reward: false,
         }
     }
 
@@ -370,6 +376,10 @@ impl<SPEC: Into<SpecId> + Copy> Cfg for CfgEnv<SPEC> {
                 false
             }
         }
+    }
+
+    fn is_lazy_reward(&self) -> bool {
+        self.lazy_reward
     }
 }
 

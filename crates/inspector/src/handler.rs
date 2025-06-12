@@ -1,5 +1,8 @@
 use crate::{Inspector, InspectorEvmTr, JournalExt};
-use context::{result::ExecutionResult, ContextTr, JournalEntry, Transaction};
+use context::{
+    result::{ExecutionResult, ResultAndReward},
+    ContextTr, JournalEntry, Transaction,
+};
 use handler::{evm::FrameTr, EvmTr, FrameResult, Handler, ItemOrResult};
 use interpreter::{
     instructions::InstructionTable,
@@ -41,10 +44,12 @@ where
     fn inspect_run(
         &mut self,
         evm: &mut Self::Evm,
-    ) -> Result<ExecutionResult<Self::HaltReason>, Self::Error> {
+    ) -> Result<ResultAndReward<Self::HaltReason>, Self::Error> {
         match self.inspect_run_without_catch_error(evm) {
             Ok(output) => Ok(output),
-            Err(e) => self.catch_error(evm, e),
+            Err(e) => self
+                .catch_error(evm, e)
+                .map(|result| ResultAndReward::new(result, 0)),
         }
     }
 
@@ -54,12 +59,14 @@ where
     fn inspect_run_without_catch_error(
         &mut self,
         evm: &mut Self::Evm,
-    ) -> Result<ExecutionResult<Self::HaltReason>, Self::Error> {
+    ) -> Result<ResultAndReward<Self::HaltReason>, Self::Error> {
         let init_and_floor_gas = self.validate(evm)?;
         let eip7702_refund = self.pre_execution(evm)? as i64;
         let mut frame_result = self.inspect_execution(evm, &init_and_floor_gas)?;
-        self.post_execution(evm, &mut frame_result, init_and_floor_gas, eip7702_refund)?;
+        let reward =
+            self.post_execution(evm, &mut frame_result, init_and_floor_gas, eip7702_refund)?;
         self.execution_result(evm, frame_result)
+            .map(|result| ResultAndReward::new(result, reward))
     }
 
     /// Run execution loop with inspection support

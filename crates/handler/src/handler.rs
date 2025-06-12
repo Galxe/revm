@@ -2,7 +2,7 @@ use crate::{
     evm::FrameTr, execution, post_execution, pre_execution, validation, EvmTr, FrameResult,
     ItemOrResult,
 };
-use context::result::{ExecutionResult, FromStringError};
+use context::result::{ExecutionResult, FromStringError, ResultAndReward};
 use context::LocalContextTr;
 use context_interface::context::ContextError;
 use context_interface::ContextTr;
@@ -94,11 +94,13 @@ pub trait Handler {
     fn run(
         &mut self,
         evm: &mut Self::Evm,
-    ) -> Result<ExecutionResult<Self::HaltReason>, Self::Error> {
+    ) -> Result<ResultAndReward<Self::HaltReason>, Self::Error> {
         // Run inner handler and catch all errors to handle cleanup.
         match self.run_without_catch_error(evm) {
             Ok(output) => Ok(output),
-            Err(e) => self.catch_error(evm, e),
+            Err(e) => self
+                .catch_error(evm, e)
+                .map(|output| ResultAndReward::new(output, 0)),
         }
     }
 
@@ -143,14 +145,16 @@ pub trait Handler {
     fn run_without_catch_error(
         &mut self,
         evm: &mut Self::Evm,
-    ) -> Result<ExecutionResult<Self::HaltReason>, Self::Error> {
+    ) -> Result<ResultAndReward<Self::HaltReason>, Self::Error> {
         let init_and_floor_gas = self.validate(evm)?;
         let eip7702_refund = self.pre_execution(evm)? as i64;
         let mut exec_result = self.execution(evm, &init_and_floor_gas)?;
-        self.post_execution(evm, &mut exec_result, init_and_floor_gas, eip7702_refund)?;
+        let reward =
+            self.post_execution(evm, &mut exec_result, init_and_floor_gas, eip7702_refund)?;
 
         // Prepare the output
         self.execution_result(evm, exec_result)
+            .map(|result| ResultAndReward::new(result, reward))
     }
 
     /// Validates the execution environment and transaction parameters.
@@ -219,7 +223,7 @@ pub trait Handler {
         exec_result: &mut FrameResult,
         init_and_floor_gas: InitialAndFloorGas,
         eip7702_gas_refund: i64,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<u128, Self::Error> {
         // Calculate final refund and add EIP-7702 refund to gas.
         self.refund(evm, exec_result, eip7702_gas_refund);
         // Ensure gas floor is met and minimum floor gas is spent.
@@ -227,8 +231,7 @@ pub trait Handler {
         // Return unused gas to caller
         self.reimburse_caller(evm, exec_result)?;
         // Pay transaction fees to beneficiary
-        self.reward_beneficiary(evm, exec_result)?;
-        Ok(())
+        self.reward_beneficiary(evm, exec_result)
     }
 
     /* VALIDATION */
@@ -412,7 +415,7 @@ pub trait Handler {
         &self,
         evm: &mut Self::Evm,
         exec_result: &mut <<Self::Evm as EvmTr>::Frame as FrameTr>::FrameResult,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<u128, Self::Error> {
         post_execution::reward_beneficiary(evm.ctx(), exec_result.gas()).map_err(From::from)
     }
 
