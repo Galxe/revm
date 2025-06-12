@@ -103,6 +103,7 @@ fn template_test() {
             output: Output::Call(Bytes::from(vec![4, 5, 6])),
         },
         EvmState::default(),
+        0,
     );
 
     // Simply use the testdata comparison utility

@@ -55,8 +55,7 @@ pub fn reimburse_caller<CTX: ContextTr>(
 pub fn reward_beneficiary<CTX: ContextTr>(
     context: &mut CTX,
     gas: &mut Gas,
-) -> Result<(), <CTX::Db as Database>::Error> {
-    let beneficiary = context.block().beneficiary();
+) -> Result<u128, <CTX::Db as Database>::Error> {
     let basefee = context.block().basefee() as u128;
     let effective_gas_price = context.tx().effective_gas_price(basefee);
 
@@ -67,14 +66,18 @@ pub fn reward_beneficiary<CTX: ContextTr>(
     } else {
         effective_gas_price
     };
+    let mut reward = coinbase_gas_price * gas.used() as u128;
 
-    // reward beneficiary
-    context.journal_mut().balance_incr(
-        beneficiary,
-        U256::from(coinbase_gas_price * gas.used() as u128),
-    )?;
+    if !context.cfg().is_lazy_reward() {
+        // reward beneficiary
+        let beneficiary = context.block().beneficiary();
+        context
+            .journal_mut()
+            .balance_incr(beneficiary, U256::from(reward))?;
+        reward = 0; // reset reward to 0, since it is already applied.
+    }
 
-    Ok(())
+    Ok(reward)
 }
 
 /// Calculate last gas spent and transform internal reason to external.

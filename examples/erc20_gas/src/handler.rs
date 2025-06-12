@@ -150,7 +150,7 @@ where
         &self,
         evm: &mut Self::Evm,
         exec_result: &mut <<Self::Evm as EvmTr>::Frame as FrameTr>::FrameResult,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<u128, Self::Error> {
         let context = evm.ctx();
         let tx = context.tx();
         let beneficiary = context.block().beneficiary();
@@ -167,6 +167,6 @@ where
         let reward = coinbase_gas_price.saturating_mul(gas.used() as u128);
         token_operation::<EVM::Context, ERROR>(context, TREASURY, beneficiary, U256::from(reward))?;
 
-        Ok(())
+        Ok(0)
     }
 }
