@@ -90,7 +90,7 @@ fn main() -> anyhow::Result<()> {
         .unwrap();
 
     let result1 = evm.transact_commit(tx1.clone())?;
-    match &result1 {
+    match &result1.result {
         ExecutionResult::Success { gas, output, .. } => {
             println!(
                 "  TX 1: Counter incremented (0 -> 1), gas used: {}",
@@ -115,7 +115,7 @@ fn main() -> anyhow::Result<()> {
         .unwrap();
 
     let result2 = evm.transact_commit(tx2.clone())?;
-    match &result2 {
+    match &result2.result {
         ExecutionResult::Success { gas, output, .. } => {
             println!(
                 "  TX 2: Counter incremented (1 -> 2), gas used: {}",
@@ -174,7 +174,7 @@ fn main() -> anyhow::Result<()> {
     // reads in TX 2 can be resolved from the BAL instead of computing
     evm2.db_mut().bump_bal_index(); // BAL index 1
     let result1_replay = evm2.transact_commit(tx1)?;
-    match &result1_replay {
+    match &result1_replay.result {
         ExecutionResult::Success { gas, output, .. } => {
             println!("  TX 1 replayed with BAL, gas used: {}", gas.tx_gas_used());
             if let revm::context_interface::result::Output::Call(bytes) = output {
@@ -188,7 +188,7 @@ fn main() -> anyhow::Result<()> {
     // Re-execute transaction 2 using BAL
     evm2.db_mut().bump_bal_index(); // BAL index 2
     let result2_replay = evm2.transact_commit(tx2)?;
-    match &result2_replay {
+    match &result2_replay.result {
         ExecutionResult::Success { gas, output, .. } => {
             println!("  TX 2 replayed with BAL, gas used: {}", gas.tx_gas_used());
             if let revm::context_interface::result::Output::Call(bytes) = output {

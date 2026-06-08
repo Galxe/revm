@@ -123,7 +123,7 @@ pub trait SystemCallEvm: ExecuteEvm {
     ) -> Result<ExecResultAndState<Self::ExecutionResult, Self::State>, Self::Error> {
         let result = self.system_call_one_with_caller(caller, system_contract_address, data)?;
         let state = self.finalize();
-        Ok(ExecResultAndState::new(result, state))
+        Ok(ExecResultAndState::new(result, state, 0))
     }
 
     /// System call is a special transaction call that is used to call a system contract.

@@ -428,7 +428,7 @@ fn execute_single_test(ctx: TestExecutionContext) -> Result<(), TestErrorKind> {
     };
     *ctx.elapsed.lock().unwrap() += timer.elapsed();
 
-    let exec_result = exec_result;
+    let exec_result = exec_result.map(|r| r.result);
     // Check results
     check_evm_execution(
         ctx.test,

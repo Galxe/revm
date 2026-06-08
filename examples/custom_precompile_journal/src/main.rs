@@ -77,7 +77,7 @@ fn main() -> anyhow::Result<()> {
             .build()
             .unwrap(),
     );
-    let read_result: Result<_, MyError> = MainnetHandler::default().run(&mut evm);
+    let read_result: Result<_, MyError> = MainnetHandler::default().run(&mut evm).map(|r| r.result);
 
     match read_result {
         Ok(revm::context::result::ExecutionResult::Success { output, gas, .. }) => {
@@ -116,7 +116,8 @@ fn main() -> anyhow::Result<()> {
             .build()
             .unwrap(),
     );
-    let write_result: Result<_, MyError> = MainnetHandler::default().run(&mut evm);
+    let write_result: Result<_, MyError> =
+        MainnetHandler::default().run(&mut evm).map(|r| r.result);
 
     match write_result {
         Ok(revm::context::result::ExecutionResult::Success { gas, .. }) => {
@@ -153,7 +154,8 @@ fn main() -> anyhow::Result<()> {
             .build()
             .unwrap(),
     );
-    let verify_result: Result<_, MyError> = MainnetHandler::default().run(&mut evm);
+    let verify_result: Result<_, MyError> =
+        MainnetHandler::default().run(&mut evm).map(|r| r.result);
 
     match verify_result {
         Ok(revm::context::result::ExecutionResult::Success { output, gas, .. }) => {

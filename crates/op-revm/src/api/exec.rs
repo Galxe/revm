@@ -4,7 +4,10 @@ use crate::{
     OpTransactionError,
 };
 use revm::{
-    context::{result::ExecResultAndState, ContextSetters},
+    context::{
+        result::{ExecResultAndReward, ExecResultAndState},
+        ContextSetters,
+    },
     context_interface::{
         result::{EVMError, ExecutionResult},
         Cfg, ContextTr, Database, JournalTr,
@@ -62,7 +65,10 @@ where
         self.0.ctx.set_block(block);
     }
 
-    fn transact_one(&mut self, tx: Self::Tx) -> Result<Self::ExecutionResult, Self::Error> {
+    fn transact_one(
+        &mut self,
+        tx: Self::Tx,
+    ) -> Result<ExecResultAndReward<Self::ExecutionResult>, Self::Error> {
         self.0.ctx.set_tx(tx);
         let mut h = OpHandler::<_, _, EthFrame<EthInterpreter>>::new();
         h.run(self)
@@ -78,7 +84,7 @@ where
         let mut h = OpHandler::<_, _, EthFrame<EthInterpreter>>::new();
         h.run(self).map(|result| {
             let state = self.finalize();
-            ExecResultAndState::new(result, state)
+            result.into_result_and_state(state)
         })
     }
 }
@@ -107,7 +113,10 @@ where
         self.0.inspector = inspector;
     }
 
-    fn inspect_one_tx(&mut self, tx: Self::Tx) -> Result<Self::ExecutionResult, Self::Error> {
+    fn inspect_one_tx(
+        &mut self,
+        tx: Self::Tx,
+    ) -> Result<ExecResultAndReward<Self::ExecutionResult>, Self::Error> {
         self.0.ctx.set_tx(tx);
         let mut h = OpHandler::<_, _, EthFrame<EthInterpreter>>::new();
         h.inspect_run(self)

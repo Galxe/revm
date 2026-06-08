@@ -314,6 +314,7 @@ mod tests {
                 .build()
                 .unwrap(),
         )
+        .map(|r| r.result)
     }
 
     #[test]
@@ -517,7 +518,7 @@ mod tests {
             )
             .expect("call factory contract failed");
 
-        match &call_result {
+        match &call_result.result {
             ExecutionResult::Success { output, .. } => match output {
                 Output::Call(bytes) => {
                     if !bytes.is_empty() {
@@ -601,7 +602,7 @@ mod tests {
             )
             .expect("call factory contract failed");
 
-        match &call_result {
+        match &call_result.result {
             ExecutionResult::Success { output, .. } => {
                 match output {
                     Output::Call(bytes) => {

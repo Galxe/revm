@@ -1,4 +1,4 @@
-use context::result::ExecResultAndState;
+use context::result::{ExecResultAndReward, ExecResultAndState};
 use handler::{system_call::SYSTEM_ADDRESS, ExecuteCommitEvm, ExecuteEvm, SystemCallEvm};
 use primitives::{Address, Bytes};
 
@@ -18,7 +18,10 @@ pub trait InspectEvm: ExecuteEvm {
     fn set_inspector(&mut self, inspector: Self::Inspector);
 
     /// Inspect the EVM with the given transaction.
-    fn inspect_one_tx(&mut self, tx: Self::Tx) -> Result<Self::ExecutionResult, Self::Error>;
+    fn inspect_one_tx(
+        &mut self,
+        tx: Self::Tx,
+    ) -> Result<ExecResultAndReward<Self::ExecutionResult>, Self::Error>;
 
     /// Inspect the EVM and finalize the state.
     fn inspect_tx(
@@ -27,7 +30,7 @@ pub trait InspectEvm: ExecuteEvm {
     ) -> Result<ExecResultAndState<Self::ExecutionResult, Self::State>, Self::Error> {
         let output = self.inspect_one_tx(tx)?;
         let state = self.finalize();
-        Ok(ExecResultAndState::new(output, state))
+        Ok(output.into_result_and_state(state))
     }
 
     /// Inspect the EVM with the given inspector and transaction, and finalize the state.
@@ -38,7 +41,7 @@ pub trait InspectEvm: ExecuteEvm {
     ) -> Result<ExecResultAndState<Self::ExecutionResult, Self::State>, Self::Error> {
         let output = self.inspect_one(tx, inspector)?;
         let state = self.finalize();
-        Ok(ExecResultAndState::new(output, state))
+        Ok(output.into_result_and_state(state))
     }
 
     /// Inspect the EVM with the given inspector and transaction.
@@ -46,7 +49,7 @@ pub trait InspectEvm: ExecuteEvm {
         &mut self,
         tx: Self::Tx,
         inspector: Self::Inspector,
-    ) -> Result<Self::ExecutionResult, Self::Error> {
+    ) -> Result<ExecResultAndReward<Self::ExecutionResult>, Self::Error> {
         self.set_inspector(inspector);
         self.inspect_one_tx(tx)
     }
@@ -59,7 +62,10 @@ pub trait InspectEvm: ExecuteEvm {
 pub trait InspectCommitEvm: InspectEvm + ExecuteCommitEvm {
     /// Inspect the EVM with the current inspector and previous transaction by replaying, similar to [`InspectEvm::inspect_tx`]
     /// and commit the state diff to the database.
-    fn inspect_tx_commit(&mut self, tx: Self::Tx) -> Result<Self::ExecutionResult, Self::Error> {
+    fn inspect_tx_commit(
+        &mut self,
+        tx: Self::Tx,
+    ) -> Result<ExecResultAndReward<Self::ExecutionResult>, Self::Error> {
         let output = self.inspect_one_tx(tx)?;
         self.commit_inner();
         Ok(output)
@@ -71,7 +77,7 @@ pub trait InspectCommitEvm: InspectEvm + ExecuteCommitEvm {
         &mut self,
         tx: Self::Tx,
         inspector: Self::Inspector,
-    ) -> Result<Self::ExecutionResult, Self::Error> {
+    ) -> Result<ExecResultAndReward<Self::ExecutionResult>, Self::Error> {
         let output = self.inspect_one(tx, inspector)?;
         self.commit_inner();
         Ok(output)
@@ -116,7 +122,7 @@ pub trait InspectSystemCallEvm: InspectEvm + SystemCallEvm {
     ) -> Result<ExecResultAndState<Self::ExecutionResult, Self::State>, Self::Error> {
         let output = self.inspect_one_system_call(system_contract_address, data)?;
         let state = self.finalize();
-        Ok(ExecResultAndState::new(output, state))
+        Ok(ExecResultAndState::new(output, state, 0))
     }
 
     /// Inspect a system call with a custom caller and finalize the state.
@@ -131,7 +137,7 @@ pub trait InspectSystemCallEvm: InspectEvm + SystemCallEvm {
         let output =
             self.inspect_one_system_call_with_caller(caller, system_contract_address, data)?;
         let state = self.finalize();
-        Ok(ExecResultAndState::new(output, state))
+        Ok(ExecResultAndState::new(output, state, 0))
     }
 
     /// Inspect a system call with a given inspector.
@@ -159,7 +165,7 @@ pub trait InspectSystemCallEvm: InspectEvm + SystemCallEvm {
         let output =
             self.inspect_one_system_call_with_inspector(system_contract_address, data, inspector)?;
         let state = self.finalize();
-        Ok(ExecResultAndState::new(output, state))
+        Ok(ExecResultAndState::new(output, state, 0))
     }
 
     /// Inspect a system call with a given inspector and caller.
@@ -193,6 +199,6 @@ pub trait InspectSystemCallEvm: InspectEvm + SystemCallEvm {
             inspector,
         )?;
         let state = self.finalize();
-        Ok(ExecResultAndState::new(output, state))
+        Ok(ExecResultAndState::new(output, state, 0))
     }
 }

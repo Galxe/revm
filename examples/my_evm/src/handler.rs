@@ -53,9 +53,9 @@ where
         &self,
         _evm: &mut Self::Evm,
         _exec_result: &mut FrameResult,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<u128, Self::Error> {
         // Skip beneficiary reward
-        Ok(())
+        Ok(0)
     }
 }
 

@@ -489,13 +489,15 @@ fn test_eip8037_sstore_new_slot() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
 
     let mut evm = state_gas_evm(bytecode, u64::MAX);
     let result = evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(baseline_result.is_success(), "Baseline should succeed");
     assert!(result.is_success(), "State gas variant should succeed");
@@ -526,13 +528,15 @@ fn test_eip8037_sstore_overwrite_no_state_gas() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
 
     let mut evm = state_gas_evm(bytecode, u64::MAX);
     let result = evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(baseline_result.is_success());
     assert!(result.is_success());
@@ -559,13 +563,15 @@ fn test_eip8037_sstore_zero_to_zero_no_state_gas() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
 
     let mut evm = state_gas_evm(bytecode, u64::MAX);
     let result = evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(baseline_result.is_success());
     assert!(result.is_success());
@@ -592,13 +598,15 @@ fn test_eip8037_sstore_multiple_new_slots() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
 
     let mut evm = state_gas_evm(bytecode, u64::MAX);
     let result = evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(baseline_result.is_success());
     assert!(result.is_success());
@@ -632,13 +640,15 @@ fn test_eip8037_create_empty_code() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
 
     let mut evm = state_gas_evm(bytecode, u64::MAX);
     let result = evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result.is_success());
     let expected = STATE_GAS_CREATE;
@@ -662,13 +672,15 @@ fn test_eip8037_create_with_code() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
 
     let mut evm = state_gas_evm(bytecode, u64::MAX);
     let result = evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result.is_success());
     let expected_state_gas = STATE_GAS_CREATE + STATE_GAS_CODE_DEPOSIT * 10;
@@ -693,13 +705,15 @@ fn test_eip8037_create_with_sstore() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
 
     let mut evm = state_gas_evm(bytecode, u64::MAX);
     let result = evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result.is_success());
     let expected_state_gas = STATE_GAS_CREATE + STATE_GAS_SSTORE_SET + STATE_GAS_CODE_DEPOSIT;
@@ -724,14 +738,16 @@ fn test_eip8037_create2_with_code() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
     assert!(baseline_result.is_success());
 
     let mut evm = state_gas_evm(bytecode, u64::MAX);
     let result = evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result.is_success());
     let expected_state_gas = STATE_GAS_CREATE + STATE_GAS_CODE_DEPOSIT * 10;
@@ -745,7 +761,8 @@ fn test_eip8037_create2_with_code() {
     let mut create_evm = state_gas_evm(create_bytecode(&create_init), u64::MAX);
     let create_result = create_evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     assert_eq!(
         result.gas().state_gas_spent(),
         create_result.gas().state_gas_spent()
@@ -766,7 +783,8 @@ fn test_eip8037_create_code_deposit_state_gas_oog() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     assert!(baseline_result.is_success());
     let baseline_gas = baseline_result.tx_gas_used();
 
@@ -780,7 +798,8 @@ fn test_eip8037_create_code_deposit_state_gas_oog() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
     assert!(baseline_tight_result.is_success());
 
     // With state gas at same tight limit: OOG because state gas exceeds remaining.
@@ -792,7 +811,8 @@ fn test_eip8037_create_code_deposit_state_gas_oog() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result.is_halt());
     match &result {
@@ -820,13 +840,15 @@ fn test_eip8037_call_new_account() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
 
     let mut evm = state_gas_evm(bytecode, u64::MAX);
     let result = evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result.is_success());
     assert_eq!(result.gas().state_gas_spent(), STATE_GAS_NEW_ACCOUNT);
@@ -850,13 +872,15 @@ fn test_eip8037_call_existing_account() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
 
     let mut evm = state_gas_evm(bytecode, u64::MAX);
     let result = evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result.is_success());
     assert_eq!(result.gas().state_gas_spent(), 0);
@@ -880,13 +904,15 @@ fn test_eip8037_selfdestruct_new_account() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
 
     let mut evm = state_gas_evm(bytecode, u64::MAX);
     let result = evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result.is_success());
     assert_eq!(result.gas().state_gas_spent(), STATE_GAS_NEW_ACCOUNT);
@@ -910,13 +936,15 @@ fn test_eip8037_selfdestruct_existing_account() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
 
     let mut evm = state_gas_evm(bytecode, u64::MAX);
     let result = evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result.is_success());
     assert_eq!(result.gas().state_gas_spent(), 0);
@@ -947,7 +975,8 @@ fn test_eip8037_regular_gas_cap_causes_oog() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
     assert!(baseline_result.is_success());
 
     let mut evm = state_gas_evm(bytecode, 30_000);
@@ -958,7 +987,8 @@ fn test_eip8037_regular_gas_cap_causes_oog() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result.is_halt());
     match &result {
@@ -990,7 +1020,8 @@ fn test_eip8037_regular_gas_cap_sufficient() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
     assert!(baseline_result.is_success());
 
@@ -1002,7 +1033,8 @@ fn test_eip8037_regular_gas_cap_sufficient() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result.is_success());
     let delta = result.tx_gas_used() - baseline_gas;
@@ -1028,7 +1060,8 @@ fn test_eip8037_state_gas_oog_remaining() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
     assert!(baseline_result.is_success());
     let baseline_gas = baseline_result.tx_gas_used();
 
@@ -1040,7 +1073,8 @@ fn test_eip8037_state_gas_oog_remaining() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result.is_halt());
     match &result {
@@ -1071,7 +1105,8 @@ fn test_eip8037_tx_limit_cap_not_enforced_with_state_gas() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
     assert!(baseline_result.is_success());
     let baseline_gas = baseline_result.tx_gas_used();
 
@@ -1084,7 +1119,8 @@ fn test_eip8037_tx_limit_cap_not_enforced_with_state_gas() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result.is_success());
     assert!(result.tx_gas_used() > 50_000, "gas_used exceeds cap");
@@ -1170,7 +1206,8 @@ fn test_eip8037_block_gas_limit_enforced_with_state_gas() {
     let mut evm_fits = state_gas_evm(bytecode, u64::MAX);
     let result_fits = evm_fits
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     assert!(result_fits.is_success());
     compare_or_save_eip8037_testdata(
         "test_eip8037_block_gas_limit_enforced_with_state_gas.json",
@@ -1189,13 +1226,15 @@ fn test_eip8037_create_child_propagates() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
 
     let mut evm = state_gas_evm(bytecode, u64::MAX);
     let result = evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
 
     let expected_state_gas = STATE_GAS_CREATE + STATE_GAS_SSTORE_SET + STATE_GAS_CODE_DEPOSIT;
     let expected_delta = expected_state_gas + hash_cost(1);
@@ -1220,13 +1259,15 @@ fn test_eip8037_reverted_create_child() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
 
     let mut evm = state_gas_evm(bytecode, u64::MAX);
     let result = evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
 
     // On child revert, state gas is returned to parent's reservoir (matching Python spec).
     // Only CREATE state gas contributes to the delta (SSTORE state gas is refunded).
@@ -1261,13 +1302,15 @@ fn test_eip8037_call_child_sstore_propagates() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
 
     let mut evm = state_gas_evm(bytecode, u64::MAX);
     let result = evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
 
     let code_deposit_gas = STATE_GAS_CODE_DEPOSIT * child_runtime.len() as u64;
     let expected_state_gas = STATE_GAS_CREATE + code_deposit_gas + STATE_GAS_SSTORE_SET;
@@ -1348,13 +1391,15 @@ fn test_eip8037_nested_call_create_sstore() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
 
     let mut evm = state_gas_evm(bytecode, u64::MAX);
     let result = evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
 
     let code_deposit_gas = STATE_GAS_CODE_DEPOSIT * child_runtime.len() as u64;
     let expected_state_gas = STATE_GAS_CREATE + code_deposit_gas + STATE_GAS_SSTORE_SET;
@@ -1371,7 +1416,8 @@ fn test_eip8037_nested_call_create_sstore() {
     let mut create_evm = state_gas_evm(create_bytecode(&init), u64::MAX);
     let create_result = create_evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     assert!(create_result.is_success());
     let sstore_portion = result.gas().state_gas_spent() - create_result.gas().state_gas_spent();
     assert_eq!(sstore_portion, STATE_GAS_SSTORE_SET);
@@ -1391,13 +1437,15 @@ fn test_eip8037_sstore_set_then_clear_refund() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
 
     let mut evm = state_gas_evm(bytecode, u64::MAX);
     let result = evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result.is_success());
     // State gas increases spent by exactly STATE_GAS_SSTORE_SET.
@@ -1421,7 +1469,8 @@ fn test_eip8037_state_gas_does_not_reduce_regular_gas() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     assert!(baseline_result.is_success());
     let baseline_gas = baseline_result.tx_gas_used();
 
@@ -1434,7 +1483,8 @@ fn test_eip8037_state_gas_does_not_reduce_regular_gas() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result.is_success());
     let delta = result.tx_gas_used() - baseline_gas;
@@ -1462,7 +1512,8 @@ fn test_eip8037_gas_opcode_excludes_reservoir() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
     assert!(baseline_result.is_success());
     let baseline_output = baseline_result.output().unwrap();
     let baseline_gas_value = U256::from_be_slice(baseline_output.as_ref());
@@ -1477,7 +1528,8 @@ fn test_eip8037_gas_opcode_excludes_reservoir() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result.is_success());
     let output = result.output().unwrap();
@@ -1516,7 +1568,8 @@ fn test_eip8037_spend_all_preserves_reservoir() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(baseline_result.is_halt());
     assert_eq!(baseline_result.tx_gas_used(), gas_limit);
@@ -1529,7 +1582,8 @@ fn test_eip8037_spend_all_preserves_reservoir() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result.is_halt());
     match &result {
@@ -1560,7 +1614,8 @@ fn test_eip8037_state_gas_spent_in_result() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(baseline_result.is_success());
     assert_eq!(baseline_result.gas().state_gas_spent(), 0);
@@ -1568,7 +1623,8 @@ fn test_eip8037_state_gas_spent_in_result() {
     let mut evm = state_gas_evm(bytecode, u64::MAX);
     let result = evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result.is_success());
     assert_eq!(result.gas().state_gas_spent(), STATE_GAS_SSTORE_SET);
@@ -1590,14 +1646,16 @@ fn test_eip8037_precompile_no_state_gas() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
     assert!(baseline_result.is_success());
 
     let mut evm = state_gas_evm(bytecode, u64::MAX);
     let result = evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result.is_success());
     let delta = result.tx_gas_used() - baseline_gas;
@@ -1641,7 +1699,8 @@ fn test_eip8037_reservoir_refill_revert_state_gas_less() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
 
     let mut evm = state_gas_evm(bytecode, u64::MAX);
@@ -1652,7 +1711,8 @@ fn test_eip8037_reservoir_refill_revert_state_gas_less() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(!result.is_success() && !result.is_halt(), "Expected REVERT");
     // On revert, state gas is refunded via reservoir, so no delta vs baseline.
@@ -1689,7 +1749,8 @@ fn test_eip8037_reservoir_refill_revert_state_gas_more() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
 
     let mut evm = state_gas_evm(bytecode, u64::MAX);
@@ -1700,7 +1761,8 @@ fn test_eip8037_reservoir_refill_revert_state_gas_more() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(!result.is_success() && !result.is_halt(), "Expected REVERT");
     // On revert, state gas is refunded via reservoir, so no delta vs baseline.
@@ -1730,7 +1792,8 @@ fn test_eip8037_reservoir_refill_halt_state_gas_less() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
     assert!(baseline_result.is_success());
 
     let gas_limit = 25_000u64;
@@ -1742,7 +1805,8 @@ fn test_eip8037_reservoir_refill_halt_state_gas_less() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result.is_halt());
     match &result {
@@ -1775,7 +1839,8 @@ fn test_eip8037_reservoir_refill_halt_state_gas_more() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result.is_halt());
     match &result {
@@ -1811,7 +1876,8 @@ fn test_eip8037_reservoir_refill_halt_vs_revert_difference() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
 
     // REVERT path: ample gas allows full execution.
     let revert_gas_limit = 500_000u64;
@@ -1823,7 +1889,8 @@ fn test_eip8037_reservoir_refill_halt_vs_revert_difference() {
                 .gas_price(0)
                 .build_fill(),
         )
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result_halt.is_halt());
     assert!(!result_revert.is_success() && !result_revert.is_halt());
@@ -1941,13 +2008,15 @@ fn test_eip8037_call_new_account_no_value() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
 
     let mut evm = state_gas_evm(bytecode, u64::MAX);
     let result = evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result.is_success());
     // No value transfer → no new_account_state_gas even for empty account.
@@ -1970,13 +2039,15 @@ fn test_eip8037_create_large_code() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
 
     let mut evm = state_gas_evm(bytecode, u64::MAX);
     let result = evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
 
     assert!(result.is_success());
     let expected_state_gas = STATE_GAS_CREATE + STATE_GAS_CODE_DEPOSIT * 200;
@@ -2017,13 +2088,15 @@ fn test_eip8037_parent_sstore_after_child_revert() {
     let mut baseline = baseline_evm(bytecode.clone());
     let baseline_result = baseline
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
     let baseline_gas = baseline_result.tx_gas_used();
 
     let mut evm = state_gas_evm(bytecode, u64::MAX);
     let result = evm
         .transact_one(TxEnv::builder_for_bench().gas_price(0).build_fill())
-        .unwrap();
+        .unwrap()
+        .result;
 
     let code_deposit_gas = STATE_GAS_CODE_DEPOSIT * child_runtime.len() as u64;
     // Parent's CREATE state gas + code deposit + parent's own SSTORE.
