@@ -88,5 +88,6 @@ mod tests {
                 .unwrap(),
         )
         .unwrap()
+        .result
     }
 }

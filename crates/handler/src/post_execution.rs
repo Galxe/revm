@@ -84,7 +84,12 @@ pub fn reimburse_caller<CTX: ContextTr>(
 pub fn reward_beneficiary<CTX: ContextTr>(
     context: &mut CTX,
     gas: &Gas,
-) -> Result<(), <CTX::Db as Database>::Error> {
+) -> Result<u128, <CTX::Db as Database>::Error> {
+    // If fee charge was disabled (e.g. eth_call simulations), the caller was
+    // never charged for gas so there are no fees to transfer to the beneficiary.
+    if context.cfg().is_fee_charge_disabled() {
+        return Ok(0);
+    }
     let (block, tx, cfg, journal, _, _) = context.all_mut();
     let basefee = block.basefee() as u128;
     let effective_gas_price = tx.effective_gas_price(basefee);
@@ -96,15 +101,21 @@ pub fn reward_beneficiary<CTX: ContextTr>(
     } else {
         effective_gas_price
     };
-
-    // Reward beneficiary.
     // Exclude reservoir gas (EIP-8037) from the used gas — reservoir is unused and reimbursed.
     let effective_used = gas.used().saturating_sub(gas.reservoir());
-    journal
-        .load_account_mut(block.beneficiary())?
-        .incr_balance(U256::from(coinbase_gas_price * effective_used as u128));
+    let mut reward = coinbase_gas_price * effective_used as u128;
 
-    Ok(())
+    if !cfg.is_lazy_reward() {
+        // Non-lazy (default): reward the beneficiary now — byte-for-byte the
+        // revm-38 behavior. In lazy mode (Gravity/grevm) we skip the inline
+        // credit and return the reward so the caller applies it.
+        journal
+            .load_account_mut(block.beneficiary())?
+            .incr_balance(U256::from(reward));
+        reward = 0; // already applied
+    }
+
+    Ok(reward)
 }
 
 /// Calculate last gas spent and transform internal reason to external.

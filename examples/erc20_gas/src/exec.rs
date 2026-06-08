@@ -1,7 +1,8 @@
 use crate::handler::Erc20MainnetHandler;
 use revm::{
+    context::result::ResultAndReward,
     context_interface::{
-        result::{EVMError, ExecutionResult, HaltReason, InvalidTransaction},
+        result::{EVMError, HaltReason, InvalidTransaction},
         ContextTr, JournalTr,
     },
     database_interface::DatabaseCommit,
@@ -20,7 +21,7 @@ type Erc20Error<CTX> = EVMError<ContextTrDbError<CTX>, InvalidTransaction>;
 /// This function does not commit the state to the database.
 pub fn transact_erc20evm<EVM>(
     evm: &mut EVM,
-) -> Result<(ExecutionResult<HaltReason>, EvmState), Erc20Error<EVM::Context>>
+) -> Result<(ResultAndReward<HaltReason>, EvmState), Erc20Error<EVM::Context>>
 where
     EVM: EvmTr<
         Context: ContextTr<Journal: JournalTr<State = EvmState>>,
@@ -43,7 +44,7 @@ where
 /// commits the resulting state changes to the database.
 pub fn transact_erc20evm_commit<EVM>(
     evm: &mut EVM,
-) -> Result<ExecutionResult<HaltReason>, Erc20Error<EVM::Context>>
+) -> Result<ResultAndReward<HaltReason>, Erc20Error<EVM::Context>>
 where
     EVM: EvmTr<
         Context: ContextTr<Journal: JournalTr<State = EvmState>, Db: DatabaseCommit>,

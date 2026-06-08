@@ -3,8 +3,8 @@ use crate::{
 };
 use context::{
     result::{
-        EVMError, ExecResultAndState, ExecutionResult, HaltReason, InvalidTransaction,
-        ResultAndState, ResultVecAndState, TransactionIndexedError,
+        EVMError, ExecResultAndReward, ExecResultAndState, ExecutionResult, HaltReason,
+        InvalidTransaction, ResultAndState, ResultVecAndState, TransactionIndexedError,
     },
     Block, ContextSetters, ContextTr, Database, Evm, JournalTr, Transaction,
 };
@@ -49,7 +49,10 @@ pub trait ExecuteEvm {
     /// # History Note
     /// Previously this function returned both output and state.
     /// Now it follows a two-step process: execute then finalize.
-    fn transact_one(&mut self, tx: Self::Tx) -> Result<Self::ExecutionResult, Self::Error>;
+    fn transact_one(
+        &mut self,
+        tx: Self::Tx,
+    ) -> Result<ExecResultAndReward<Self::ExecutionResult>, Self::Error>;
 
     /// Finalize execution, clearing the journal and returning the accumulated state changes.
     ///
@@ -73,7 +76,7 @@ pub trait ExecuteEvm {
         // finalize will clear the journal
         let state = self.finalize();
         let output = output_or_error?;
-        Ok(ExecResultAndState::new(output, state))
+        Ok(output.into_result_and_state(state))
     }
 
     /// Execute multiple transactions without finalizing the state.
@@ -89,7 +92,8 @@ pub trait ExecuteEvm {
     fn transact_many(
         &mut self,
         txs: impl Iterator<Item = Self::Tx>,
-    ) -> Result<Vec<Self::ExecutionResult>, TransactionIndexedError<Self::Error>> {
+    ) -> Result<Vec<ExecResultAndReward<Self::ExecutionResult>>, TransactionIndexedError<Self::Error>>
+    {
         let (lower, _) = txs.size_hint();
         let mut outputs = Vec::with_capacity(lower);
         for (index, tx) in txs.enumerate() {
@@ -115,7 +119,14 @@ pub trait ExecuteEvm {
         // on error transact_multi will clear the journal
         let result = self.transact_many(txs)?;
         let state = self.finalize();
-        Ok(ExecResultAndState::new(result, state))
+        let mut vec_result = Vec::with_capacity(result.len());
+        let mut reward = 0;
+        for res in result {
+            vec_result.push(res.result);
+            // accumulate lazy rewards
+            reward += res.lazy_reward;
+        }
+        Ok(ExecResultAndState::new(vec_result, state, reward))
     }
 
     /// Execute previous transaction and finalize it.
@@ -140,7 +151,10 @@ pub trait ExecuteCommitEvm: ExecuteEvm {
 
     /// Transact the transaction and commit to the state.
     #[inline]
-    fn transact_commit(&mut self, tx: Self::Tx) -> Result<Self::ExecutionResult, Self::Error> {
+    fn transact_commit(
+        &mut self,
+        tx: Self::Tx,
+    ) -> Result<ExecResultAndReward<Self::ExecutionResult>, Self::Error> {
         let output = self.transact_one(tx)?;
         self.commit_inner();
         Ok(output)
@@ -153,7 +167,8 @@ pub trait ExecuteCommitEvm: ExecuteEvm {
     fn transact_many_commit(
         &mut self,
         txs: impl Iterator<Item = Self::Tx>,
-    ) -> Result<Vec<Self::ExecutionResult>, TransactionIndexedError<Self::Error>> {
+    ) -> Result<Vec<ExecResultAndReward<Self::ExecutionResult>>, TransactionIndexedError<Self::Error>>
+    {
         let outputs = self.transact_many(txs)?;
         self.commit_inner();
         Ok(outputs)
@@ -163,10 +178,10 @@ pub trait ExecuteCommitEvm: ExecuteEvm {
     ///
     /// Internally calls `replay` and `commit` functions.
     #[inline]
-    fn replay_commit(&mut self) -> Result<Self::ExecutionResult, Self::Error> {
+    fn replay_commit(&mut self) -> Result<ExecResultAndReward<Self::ExecutionResult>, Self::Error> {
         let result = self.replay()?;
         self.commit(result.state);
-        Ok(result.result)
+        Ok(ExecResultAndReward::new(result.result, result.lazy_reward))
     }
 }
 
@@ -184,7 +199,10 @@ where
     type Block = <CTX as ContextTr>::Block;
 
     #[inline]
-    fn transact_one(&mut self, tx: Self::Tx) -> Result<Self::ExecutionResult, Self::Error> {
+    fn transact_one(
+        &mut self,
+        tx: Self::Tx,
+    ) -> Result<ExecResultAndReward<Self::ExecutionResult>, Self::Error> {
         self.ctx.set_tx(tx);
         MainnetHandler::default().run(self)
     }
@@ -203,7 +221,7 @@ where
     fn replay(&mut self) -> Result<ResultAndState<HaltReason>, Self::Error> {
         MainnetHandler::default().run(self).map(|result| {
             let state = self.finalize();
-            ResultAndState::new(result, state)
+            result.into_result_and_state(state)
         })
     }
 }

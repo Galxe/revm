@@ -87,7 +87,7 @@ async fn main() -> anyhow::Result<()> {
         .unwrap();
 
     // Unpack output call enum into raw bytes
-    let value = match result {
+    let value = match result.result {
         ExecutionResult::Success {
             output: Output::Call(value),
             ..

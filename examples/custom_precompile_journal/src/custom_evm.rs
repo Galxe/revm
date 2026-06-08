@@ -254,7 +254,7 @@ mod tests {
             "Transaction should succeed, got: {result:?}"
         );
 
-        match result.unwrap() {
+        match result.unwrap().result {
             revm::context::result::ExecutionResult::Success { logs, .. } => {
                 // Transaction succeeded, now check logs from execution result
                 // Note: Inspector might not be called for precompile logs,
@@ -377,7 +377,7 @@ mod tests {
             "Transaction should succeed, got: {result:?}"
         );
 
-        match result.unwrap() {
+        match result.unwrap().result {
             revm::context::result::ExecutionResult::Success { .. } => {
                 // Transaction succeeded, check that no logs were created
                 let logs = evm.0.inspector.logs();

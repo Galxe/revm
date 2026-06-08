@@ -74,7 +74,7 @@ fn test_selfdestruct_multi_tx() {
 
     compare_or_save_revm_testdata(
         "test_selfdestruct_multi_tx.json",
-        &(result1, result2, output),
+        &(result1.result, result2.result, output),
     );
 }
 
@@ -185,7 +185,7 @@ fn test_multi_tx_create() {
 
     compare_or_save_revm_testdata(
         "test_multi_tx_create.json",
-        &(result1, result2, result3, output),
+        &(result1.result, result2.result, result3.result, output),
     );
 }
 
@@ -233,7 +233,7 @@ fn test_frame_stack_index() {
         .unwrap();
 
     assert_eq!(evm.frame_stack.index(), None);
-    compare_or_save_revm_testdata("test_frame_stack_index.json", &result1);
+    compare_or_save_revm_testdata("test_frame_stack_index.json", &result1.result);
 }
 
 #[test]

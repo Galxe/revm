@@ -6,7 +6,7 @@ use crate::{
     validation, EvmTr, FrameResult, ItemOrResult,
 };
 use context::{
-    result::{ExecutionResult, FromStringError},
+    result::{ExecutionResult, FromStringError, ResultAndReward},
     LocalContextTr,
 };
 use context_interface::{
@@ -97,11 +97,13 @@ pub trait Handler {
     fn run(
         &mut self,
         evm: &mut Self::Evm,
-    ) -> Result<ExecutionResult<Self::HaltReason>, Self::Error> {
+    ) -> Result<ResultAndReward<Self::HaltReason>, Self::Error> {
         // Run inner handler and catch all errors to handle cleanup.
         match self.run_without_catch_error(evm) {
             Ok(output) => Ok(output),
-            Err(e) => self.catch_error(evm, e),
+            Err(e) => self
+                .catch_error(evm, e)
+                .map(|output| ResultAndReward::new(output, 0)),
         }
     }
 
@@ -150,14 +152,16 @@ pub trait Handler {
     fn run_without_catch_error(
         &mut self,
         evm: &mut Self::Evm,
-    ) -> Result<ExecutionResult<Self::HaltReason>, Self::Error> {
+    ) -> Result<ResultAndReward<Self::HaltReason>, Self::Error> {
         let mut init_and_floor_gas = self.validate(evm)?;
         let eip7702_refund = self.pre_execution(evm, &mut init_and_floor_gas)?;
         // Regular refund is returned from pre_execution after state gas split is applied
         let eip7702_regular_refund = eip7702_refund as i64;
 
         let mut exec_result = self.execution(evm, &init_and_floor_gas)?;
-        let result_gas = self.post_execution(
+        // post_execution returns both the EIP-8037 ResultGas and the lazy reward
+        // (reward is 0 unless cfg.is_lazy_reward()).
+        let (result_gas, reward) = self.post_execution(
             evm,
             &mut exec_result,
             init_and_floor_gas,
@@ -166,6 +170,7 @@ pub trait Handler {
 
         // Prepare the output
         self.execution_result(evm, exec_result, result_gas)
+            .map(|result| ResultAndReward::new(result, reward))
     }
 
     /// Validates the execution environment and transaction parameters.
@@ -245,7 +250,7 @@ pub trait Handler {
         exec_result: &mut FrameResult,
         init_and_floor_gas: InitialAndFloorGas,
         eip7702_gas_refund: i64,
-    ) -> Result<ResultGas, Self::Error> {
+    ) -> Result<(ResultGas, u128), Self::Error> {
         // Calculate final refund and add EIP-7702 refund to gas.
         self.refund(evm, exec_result, eip7702_gas_refund);
 
@@ -259,9 +264,10 @@ pub trait Handler {
         // Return unused gas to caller
         self.reimburse_caller(evm, exec_result)?;
         // Pay transaction fees to beneficiary
-        self.reward_beneficiary(evm, exec_result)?;
-        // Build ResultGas from the final gas state
-        Ok(result_gas)
+        // Pay transaction fees to beneficiary (deferred → returned as `reward`
+        // when cfg.is_lazy_reward(), otherwise applied inline and reward == 0).
+        let reward = self.reward_beneficiary(evm, exec_result)?;
+        Ok((result_gas, reward))
     }
 
     /* VALIDATION */
@@ -490,7 +496,7 @@ pub trait Handler {
         &self,
         evm: &mut Self::Evm,
         exec_result: &mut <<Self::Evm as EvmTr>::Frame as FrameTr>::FrameResult,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<u128, Self::Error> {
         post_execution::reward_beneficiary(evm.ctx(), exec_result.gas()).map_err(From::from)
     }
 

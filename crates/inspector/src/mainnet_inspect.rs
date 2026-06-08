@@ -2,7 +2,7 @@ use crate::{
     inspect::{InspectCommitEvm, InspectEvm, InspectSystemCallEvm},
     Inspector, InspectorEvmTr, InspectorHandler, JournalExt,
 };
-use context::{ContextSetters, ContextTr, Evm, FrameStack, JournalTr};
+use context::{result::ExecResultAndReward, ContextSetters, ContextTr, Evm, FrameStack, JournalTr};
 use database_interface::DatabaseCommit;
 use handler::{
     instructions::InstructionProvider, system_call::SystemCallTx, EthFrame, EvmTr, EvmTrError,
@@ -40,7 +40,10 @@ where
         self.inspector = inspector;
     }
 
-    fn inspect_one_tx(&mut self, tx: Self::Tx) -> Result<Self::ExecutionResult, Self::Error> {
+    fn inspect_one_tx(
+        &mut self,
+        tx: Self::Tx,
+    ) -> Result<ExecResultAndReward<Self::ExecutionResult>, Self::Error> {
         self.set_tx(tx);
         MainnetHandler::default().inspect_run(self)
     }

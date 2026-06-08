@@ -27,6 +27,24 @@ pub struct ExecResultAndState<R, S = EvmState> {
     pub result: R,
     /// Output State.
     pub state: S,
+    /// Lazy reward for the transaction.
+    ///
+    /// Defaults to 0 (non-lazy mode). Skipped during serialization when 0 so the
+    /// serialized form is identical to upstream revm for the common case — this
+    /// keeps snapshot/JSON outputs byte-stable unless lazy rewards are in use.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "is_zero_u128")
+    )]
+    pub lazy_reward: u128,
+}
+
+/// Returns true when the value is zero. Used by `skip_serializing_if` for the
+/// Gravity `lazy_reward` fields so they don't appear in serialized output unless set.
+#[cfg(feature = "serde")]
+#[inline]
+fn is_zero_u128(value: &u128) -> bool {
+    *value == 0
 }
 
 /// Type alias for backwards compatibility.
@@ -37,8 +55,62 @@ pub type ResultVecAndState<R, S> = ExecResultAndState<Vec<R>, S>;
 
 impl<R, S> ExecResultAndState<R, S> {
     /// Creates new ResultAndState.
-    pub fn new(result: R, state: S) -> Self {
-        Self { result, state }
+    pub fn new(result: R, state: S, lazy_reward: u128) -> Self {
+        Self {
+            result,
+            state,
+            lazy_reward,
+        }
+    }
+}
+
+/// Execution result and reward.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct ExecResultAndReward<R> {
+    /// Execution result
+    pub result: R,
+    /// For lazy rewards
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "is_zero_u128")
+    )]
+    pub lazy_reward: u128,
+}
+
+/// Type alias for convenience, representing execution result and reward with halt reason.
+pub type ResultAndReward<H = HaltReason> = ExecResultAndReward<ExecutionResult<H>>;
+
+impl<R> ExecResultAndReward<R> {
+    /// Creates a new `ExecResultAndReward`.
+    pub const fn new(result: R, lazy_reward: u128) -> Self {
+        Self {
+            result,
+            lazy_reward,
+        }
+    }
+
+    /// Converts the `ExecResultAndReward` into an `ExecResultAndState`.
+    pub fn into_result_and_state<S>(self, state: S) -> ExecResultAndState<R, S> {
+        ExecResultAndState::new(self.result, state, self.lazy_reward)
+    }
+
+    /// Consumes the wrapper and returns the inner execution result, discarding the lazy reward.
+    pub fn into_result(self) -> R {
+        self.result
+    }
+}
+
+// The lazy reward is additive and defaults to 0 (non-lazy mode), so for the
+// overwhelmingly common case `ExecResultAndReward` should behave like the inner
+// execution result. Deref keeps the result's accessors (`is_success`, `gas`,
+// `is_halt`, ...) available directly on the wrapper, minimizing churn for callers
+// that don't care about the reward.
+impl<R> core::ops::Deref for ExecResultAndReward<R> {
+    type Target = R;
+
+    fn deref(&self) -> &Self::Target {
+        &self.result
     }
 }
 
